@@ -1,8 +1,8 @@
 import numpy as np
 
 
-visited_mark = 0.8  # Cells visited by the rat will be painted by gray 0.8
-rat_mark = 0.5      # The current rat cell will be painteg by gray 0.5
+VISITED_TILE_COLOR = 0.8
+PLAYER_TILE_COLOR = 0.5
 
 LEFT = 0
 UP = 1
@@ -17,8 +17,8 @@ actions_dict = {
 }
 
 
-class Qmaze(object):
-    def __init__(self, maze, rat=(0, 0)):
+class Maze(object):
+    def __init__(self, maze, player=(0, 0)):
         self._maze = np.array(maze)
         nrows, ncols = self._maze.shape
         self.target = (nrows - 1, ncols - 1)  # target cell where the "cheese" is
@@ -27,16 +27,16 @@ class Qmaze(object):
         self.free_cells.remove(self.target)
         if self._maze[self.target] == 0.0:
             raise Exception("Invalid maze: target cell cannot be blocked!")
-        if not rat in self.free_cells:
-            raise Exception("Invalid Rat Location: must sit on a free cell")
-        self.reset(rat)
+        if player not in self.free_cells:
+            raise Exception("Invalid player Location: must sit on a free cell")
+        self.reset(player)
 
-    def reset(self, rat):
-        self.rat = rat
+    def reset(self, player):
+        self.player = player
         self.maze = np.copy(self._maze)
         nrows, ncols = self.maze.shape
-        row, col = rat
-        self.maze[row, col] = rat_mark
+        row, col = player
+        self.maze[row, col] = PLAYER_TILE_COLOR
         self.state = (row, col, 'start')
         self.min_reward = -0.5 * self.maze.size
         self.total_reward = 0
@@ -44,10 +44,10 @@ class Qmaze(object):
 
     def update_state(self, action):
         nrows, ncols = self.maze.shape
-        nrow, ncol, nmode = rat_row, rat_col, mode = self.state
+        nrow, ncol, nmode = player_row, player_col, mode = self.state
 
-        if self.maze[rat_row, rat_col] > 0.0:
-            self.visited.add((rat_row, rat_col))  # mark visited cell
+        if self.maze[player_row, player_col] > 0.0:
+            self.visited.add((player_row, player_col))  # mark visited cell
 
         valid_actions = self.valid_actions()
 
@@ -63,20 +63,20 @@ class Qmaze(object):
                 ncol += 1
             elif action == DOWN:
                 nrow += 1
-        else:  # invalid action, no change in rat position
+        else:  # Invalid action, no change in position
             mode = 'invalid'
 
-        # new state
+        # New state
         self.state = (nrow, ncol, nmode)
 
     def get_reward(self):
-        rat_row, rat_col, mode = self.state
+        player_row, player_col, mode = self.state
         nrows, ncols = self.maze.shape
-        if rat_row == nrows - 1 and rat_col == ncols - 1:
+        if player_row == nrows - 1 and player_col == ncols - 1:
             return 1.0
         if mode == 'blocked':
             return self.min_reward - 1
-        if (rat_row, rat_col) in self.visited:
+        if (player_row, player_col) in self.visited:
             return -0.25
         if mode == 'invalid':
             return -0.75
@@ -99,22 +99,22 @@ class Qmaze(object):
     def draw_env(self):
         canvas = np.copy(self.maze)
         nrows, ncols = self.maze.shape
-        # clear all visual marks
+        # Clear the canvas
         for r in range(nrows):
             for c in range(ncols):
                 if canvas[r, c] > 0.0:
                     canvas[r, c] = 1.0
-        # draw the rat
+        # Draw the player
         row, col, valid = self.state
-        canvas[row, col] = rat_mark
+        canvas[row, col] = PLAYER_TILE_COLOR
         return canvas
 
     def game_status(self):
         if self.total_reward < self.min_reward:
             return 'lose'
-        rat_row, rat_col, mode = self.state
+        player_row, player_col, mode = self.state
         nrows, ncols = self.maze.shape
-        if rat_row == nrows - 1 and rat_col == ncols - 1:
+        if player_row == nrows - 1 and player_col == ncols - 1:
             return 'win'
 
         return 'not_over'
@@ -160,7 +160,7 @@ class Experience(object):
     def remember(self, episode):
         # episode = [envstate, action, reward, envstate_next, game_over]
         # memory[i] = episode
-        # envstate == flattened 1d maze cells info, including rat cell (see method: observe)
+        # envstate == flattened 1d maze cells info, including player cell (see method: observe)
         self.memory.append(episode)
         if len(self.memory) > self.max_memory:
             del self.memory[0]
