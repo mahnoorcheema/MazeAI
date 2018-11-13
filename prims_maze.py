@@ -4,8 +4,10 @@ from random import randint as rand
 WALL = 0
 SPACE = 1
 
+MIN_MAZE_SIZE = 9
 
-def generate_prims_maze(width=11, height=11, complexity=0.75, density=.75):
+
+def generate_prims_maze_matrix(width=11, height=11, complexity=0.75, density=0.75):
     """
     Generate a maze using a modified version of Prims algorithm.
     :param width:
@@ -14,19 +16,21 @@ def generate_prims_maze(width=11, height=11, complexity=0.75, density=.75):
     :param density:
     :return: A matrix of floats representing a maze, top left and bottom right corners will always be clear
     """
-    # Create only odd shaped islands
-    height = (height // 2) * 2 + 1
-    width = (width // 2) * 2 + 1
-    height = min(height, 9)
-    width = min(width, 9)
+    # Set the minimum size for the maze
+    height = max(height, MIN_MAZE_SIZE)
+    width = max(width, MIN_MAZE_SIZE)
 
-    # adjust complexity and density in accordance to maze size
+    # Create only odd sized mazes
+    height = height + 3 if height % 2 == 0 else height + 2
+    width = width + 3 if width % 2 == 0 else width + 2
+
+    # Adjust complexity and density in accordance to maze size
     complexity = int(complexity * (5 * (height + width)))
     density = int(density * (height // 2) * (width // 2))
-    print("Generating Maze with ajusted complexity and density", complexity, density)
 
     maze_matrix = np.ones((height, width), dtype=float)
 
+    # Set the borders to be walls
     maze_matrix[0, :] = maze_matrix[-1, :] = WALL
     maze_matrix[:, 0] = maze_matrix[:, -1] = WALL
 
@@ -49,9 +53,8 @@ def generate_prims_maze(width=11, height=11, complexity=0.75, density=.75):
                     maze_matrix[y_, x_] = WALL
                     maze_matrix[y_ + (y - y_) // 2, x_ + (x - x_) // 2] = WALL
                     x, y = x_, y_
-    maze_matrix[0:3, 0:3] = maze_matrix[(width - 3):, (height - 3):] = SPACE
-
-    return maze_matrix
+    # Return the maze with the borders stripped off
+    return maze_matrix[1:-1, 1:-1]
 
 
 def print_maze_matrix(matrix):
@@ -67,4 +70,5 @@ def print_maze_matrix(matrix):
 
 
 if __name__ == "__main__":
-    print_maze_matrix(generate_prims_maze())
+    for i in range(5):
+        print_maze_matrix(generate_prims_maze_matrix())
